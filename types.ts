@@ -1,3 +1,6 @@
+// Fix: Import FC type from React to resolve reference error.
+import type { FC } from 'react';
+
 export interface MonthlyData {
   month: string;
   consumption: number; // in kWh
@@ -18,6 +21,13 @@ export interface Residence {
   hasSolar: boolean;
   solarSystem?: SolarSystemDetails;
   data: MonthlyData[];
+  readings: Reading[];
+  tariff: {
+    group: string;
+    subgroup: string;
+    modality: string;
+    costKwh: number;
+  };
 }
 
 export interface User {
@@ -46,12 +56,34 @@ export interface DailyReportData {
 }
 
 export interface APIIntegration {
-  id: string;
+  id: 'huawei' | 'fronius' | 'sma' | 'solaredge' | 'painelz';
   name: string;
   description: string;
-  logo: string; // URL to logo, can be a simple path
+  logo: string;
   isConnected: boolean;
+  status?: 'Connected' | 'Failed' | 'Expired' | 'Disconnected';
+  lastReading?: string;
+  nextUpdate?: string;
+  // Provider-specific credentials
+  config?: {
+    // Universal
+    dataInterval?: string; // e.g., '15 min'
+    apiUrl?: string;
+    // Huawei
+    username?: string;
+    password?: string;
+    domain?: string;
+    stationCode?: string;
+    // Fronius
+    apiKey?: string;
+    plantId?: string;
+    // SMA
+    systemId?: string;
+    // SolarEdge
+    siteId?: string;
+  };
 }
+
 
 export type TipCategory = 'Lighting' | 'Refrigeration' | 'Electronics' | 'HVAC' | 'Appliances' | 'Home Improvement';
 export type TipDifficulty = 'Easy' | 'Medium' | 'Hard';
@@ -63,7 +95,8 @@ export interface SavingTip {
   category: TipCategory;
   difficulty: TipDifficulty;
   savings: number; // Percentage
-  icon: React.FC<{ className?: string }>;
+  // Fix: Use the imported FC type.
+  icon: FC<{ className?: string }>;
   householdPerformance: number; // Percentage
   typicalPerformance: number; // Percentage
 }

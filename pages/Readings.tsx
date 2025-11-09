@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Card from '../components/Card';
 import { Reading, Residence } from '../types';
 
-const mockReadings: Reading[] = [
-    { date: '2024-05-19', reading: 12321.45, usage: 22.12, submittedBy: 'Manual' },
-    { date: '2024-05-18', reading: 12299.33, usage: 19.87, submittedBy: 'Automatic' },
-    { date: '2024-05-17', reading: 12279.46, usage: 25.01, submittedBy: 'Manual' },
-    { date: '2024-05-16', reading: 12254.45, usage: 21.50, submittedBy: 'Automatic' },
-    { date: '2024-05-15', reading: 12232.95, usage: 18.90, submittedBy: 'Automatic' },
-];
-
-
 interface ReadingsProps {
-    selectedResidence: Residence;
+    residences: Residence[];
+    selectedResidenceId: number;
+    setSelectedResidenceId: (id: number) => void;
+    setResidences: React.Dispatch<React.SetStateAction<Residence[]>>;
 }
 
-const Readings: React.FC<ReadingsProps> = ({ selectedResidence }) => {
-    const [readings, setReadings] = useState<Reading[]>(mockReadings);
+const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, setSelectedResidenceId, setResidences }) => {
+    const selectedResidence = useMemo(() => residences.find(r => r.id === selectedResidenceId)!, [residences, selectedResidenceId]);
+
+    const [readings, setReadings] = useState<Reading[]>(selectedResidence.readings);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [meterReading, setMeterReading] = useState('');
+
+    useEffect(() => {
+        setReadings(selectedResidence.readings);
+    }, [selectedResidence]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,16 +42,43 @@ const Readings: React.FC<ReadingsProps> = ({ selectedResidence }) => {
             usage: usage,
             submittedBy: 'Manual',
         };
-        setReadings([newReading, ...readings]);
+        
+        const updatedReadings = [newReading, ...readings];
+        setReadings(updatedReadings);
+
+        // Update the global state
+        setResidences(prevResidences => prevResidences.map(res => 
+            res.id === selectedResidenceId ? { ...res, readings: updatedReadings } : res
+        ));
+
         setMeterReading('');
     };
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-text-primary">Leitura Manual do Medidor</h1>
-            <p className="text-text-secondary mt-1 mb-6">Envie uma nova leitura para a residência: <strong>{selectedResidence.name}</strong>.</p>
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-text-primary">Leitura Manual do Medidor</h1>
+                    <p className="text-text-secondary mt-1">Envie uma nova leitura para a residência selecionada.</p>
+                </div>
+                 <div>
+                    <label htmlFor="residence-select-readings" className="sr-only">Selecionar Residência</label>
+                    <select
+                        id="residence-select-readings"
+                        value={selectedResidenceId}
+                        onChange={(e) => setSelectedResidenceId(Number(e.target.value))}
+                        className="bg-surface border border-gray-600 rounded-md py-2 px-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                        {residences.map(r => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
 
             <Card className="mb-8">
+                 <h3 className="text-lg font-semibold mb-4">Adicionar Leitura para: <strong className="text-primary">{selectedResidence.name}</strong></h3>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div>
                         <label htmlFor="date" className="block text-sm font-medium text-text-secondary mb-2">Data</label>
@@ -84,7 +111,7 @@ const Readings: React.FC<ReadingsProps> = ({ selectedResidence }) => {
                 </form>
             </Card>
 
-            <h2 className="text-2xl font-bold text-text-primary mb-4">Leituras Recentes</h2>
+            <h2 className="text-2xl font-bold text-text-primary mb-4">Histórico de Leituras: {selectedResidence.name}</h2>
             <Card>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
@@ -99,7 +126,7 @@ const Readings: React.FC<ReadingsProps> = ({ selectedResidence }) => {
                         <tbody>
                             {readings.map((r, index) => (
                                 <tr key={index} className="border-b border-gray-700 last:border-b-0">
-                                    <td className="p-4">{r.date}</td>
+                                    <td className="p-4">{new Date(r.date).toLocaleDateString('pt-BR')}</td>
                                     <td className="p-4">{r.reading.toFixed(2)}</td>
                                     <td className="p-4">{r.usage.toFixed(2)}</td>
                                     <td className="p-4">

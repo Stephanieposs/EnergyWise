@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Residence, User } from './types';
+import { Residence, User, Reading } from './types';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Residences from './pages/Residences';
@@ -19,6 +19,14 @@ const mockUser: User = {
   name: 'André',
   email: 'andre.engenheiro@email.com',
 };
+
+const mockReadingsForResidence1: Reading[] = [
+    { date: '2024-05-19', reading: 12321.45, usage: 22.12, submittedBy: 'Manual' },
+    { date: '2024-05-18', reading: 12299.33, usage: 19.87, submittedBy: 'Automatic' },
+    { date: '2024-05-17', reading: 12279.46, usage: 25.01, submittedBy: 'Manual' },
+    { date: '2024-05-16', reading: 12254.45, usage: 21.50, submittedBy: 'Automatic' },
+    { date: '2024-05-15', reading: 12232.95, usage: 18.90, submittedBy: 'Automatic' },
+];
 
 const mockResidences: Residence[] = [
   {
@@ -46,6 +54,13 @@ const mockResidences: Residence[] = [
         { month: 'Nov', consumption: 460, generation: 590 },
         { month: 'Dec', consumption: 480, generation: 540 },
     ],
+    tariff: { 
+      group: 'Grupo B – Baixa Tensão',
+      subgroup: 'B1 – Residencial',
+      modality: 'Convencional',
+      costKwh: 0.78 
+    },
+    readings: mockReadingsForResidence1,
   },
    {
     id: 2,
@@ -65,6 +80,16 @@ const mockResidences: Residence[] = [
         { month: 'Oct', consumption: 245 },
         { month: 'Nov', consumption: 255 },
         { month: 'Dec', consumption: 260 },
+    ],
+    tariff: { 
+      group: 'Grupo B – Baixa Tensão',
+      subgroup: 'B1 – Baixa Renda',
+      modality: 'Convencional',
+      costKwh: 0.55 
+    },
+    readings: [
+        { date: '2024-05-19', reading: 5432.1, usage: 8.5, submittedBy: 'Manual' },
+        { date: '2024-05-18', reading: 5423.6, usage: 7.9, submittedBy: 'Manual' },
     ],
   },
 ];
@@ -93,11 +118,11 @@ const App: React.FC = () => {
             case 'residences':
                 return <Residences {...props} />;
             case 'readings':
-                return <Readings selectedResidence={residences.find(r => r.id === selectedResidenceId)!} />;
+                return <Readings residences={residences} selectedResidenceId={selectedResidenceId} setSelectedResidenceId={setSelectedResidenceId} setResidences={setResidences} />;
             case 'reports':
                 return <Reports residences={residences} />;
             case 'simulation':
-                return <SolarSimulation />;
+                return <SolarSimulation residences={residences} selectedResidenceId={selectedResidenceId} setSelectedResidenceId={setSelectedResidenceId} />;
             case 'saving-tips':
                 return <SavingTips />;
              case 'integrations':
