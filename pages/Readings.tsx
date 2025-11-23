@@ -69,7 +69,8 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
             if (!text) return;
 
             try {
-                const lines = text.split('\n');
+                // Split by newline, handling both \n and \r\n
+                const lines = text.split(/\r?\n/);
                 const newReadings: Reading[] = [];
 
                 // Skip header if exists (simple check if first char is number)
