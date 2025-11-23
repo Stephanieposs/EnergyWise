@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -112,7 +113,7 @@ const SolarSimulation: React.FC<SolarSimulationProps> = ({ residences, selectedR
                     </div>
                     <Card>
                         <h3 className="text-xl font-semibold mb-4 text-text-primary">Previsão de Geração Mensal</h3>
-                         <div className="h-80">
+                         <div className="h-80 w-full min-w-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={simulationResult.monthlyForecast} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                                     <defs>

@@ -10,7 +10,7 @@ interface EnergyChartProps {
 
 const EnergyChart: React.FC<EnergyChartProps> = ({ data, showGeneration }) => {
   return (
-    <div className="h-96">
+    <div className="h-96 w-full min-w-0">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
