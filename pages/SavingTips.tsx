@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import { SavingTip, TipCategory, TipDifficulty } from '../types';
-import { LightBulbIcon, RefrigeratorIcon, TvIcon, ThermostatIcon, WaterDropIcon, WindIcon, Squares2X2Icon, WrenchScrewdriverIcon } from '../components/icons';
+import { LightBulbIcon, RefrigeratorIcon, TvIcon, ThermostatIcon, WaterDropIcon, WindIcon, Squares2X2Icon } from '../components/icons';
 
 const mockTips: SavingTip[] = [
     {
@@ -111,8 +110,8 @@ const difficultyColors: Record<TipDifficulty, string> = {
 };
 
 const performanceColors = (perf: number) => {
-    if (perf > 5) return 'bg-red-500'; // Over typical
-    if (perf < -5) return 'bg-green-500'; // Under typical
+    if (perf > 5) return 'bg-red-500'; // Over typical (Assuming higher usage is bad)
+    if (perf < -5) return 'bg-green-500'; // Under typical (Assuming lower usage is good)
     return 'bg-yellow-500'; // Matches typical
 };
 
@@ -134,6 +133,7 @@ const FilterButton: React.FC<{
 );
 
 const TipCard: React.FC<{ tip: SavingTip }> = ({ tip }) => {
+    const Icon = tip.icon;
     const performanceText = 
         tip.householdPerformance > 0 ? `${tip.householdPerformance}% acima da média` :
         tip.householdPerformance < 0 ? `${Math.abs(tip.householdPerformance)}% abaixo da média` :
@@ -143,11 +143,11 @@ const TipCard: React.FC<{ tip: SavingTip }> = ({ tip }) => {
         <Card className="flex flex-col">
             <div className="flex justify-between items-start">
                 <div className="p-3 rounded-full bg-primary-500/10">
-                    <tip.icon className="h-6 w-6 text-primary-300" />
+                    <Icon className="h-6 w-6 text-primary-300" />
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${difficultyColors[tip.difficulty]}`}>
-                        {difficultyTranslations[tip.difficulty]}
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${difficultyColors[tip.difficulty] || 'bg-gray-500 text-gray-300'}`}>
+                        {difficultyTranslations[tip.difficulty] || tip.difficulty}
                     </span>
                     <span className="px-3 py-1 text-xs font-semibold rounded-full bg-primary-500/20 text-primary-300">
                         {tip.savings}% economia
@@ -169,7 +169,9 @@ const TipCard: React.FC<{ tip: SavingTip }> = ({ tip }) => {
                         style={{ width: `${Math.min(100, 50 + tip.householdPerformance * 2.5)}%` }}
                     />
                 </div>
-                <p className="text-right text-xs text-text-secondary mt-2">Categoria: {categoryTranslations[tip.category]}</p>
+                <p className="text-right text-xs text-text-secondary mt-2">
+                    Categoria: {categoryTranslations[tip.category] || tip.category}
+                </p>
             </div>
         </Card>
     );
@@ -197,16 +199,19 @@ const SavingTips: React.FC = () => {
                     <div>
                         <h3 className="text-md font-semibold text-text-primary mb-2">Categoria</h3>
                         <div className="flex flex-wrap gap-2">
-                            {categoryFilters.map(filter => (
-                                <FilterButton
-                                    key={filter.category}
-                                    onClick={() => setActiveCategory(filter.category)}
-                                    isActive={activeCategory === filter.category}
-                                >
-                                    <filter.icon className="h-4 w-4" />
-                                    {filter.label}
-                                </FilterButton>
-                            ))}
+                            {categoryFilters.map(filter => {
+                                const FilterIcon = filter.icon;
+                                return (
+                                    <FilterButton
+                                        key={filter.category}
+                                        onClick={() => setActiveCategory(filter.category)}
+                                        isActive={activeCategory === filter.category}
+                                    >
+                                        <FilterIcon className="h-4 w-4" />
+                                        {filter.label}
+                                    </FilterButton>
+                                );
+                            })}
                         </div>
                     </div>
                      <div>

@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import Card from '../components/Card';
 import { DailyReportData, Residence } from '../types';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 // Mock daily data generation
 const generateMockDailyData = (days: number): DailyReportData[] => {
@@ -33,8 +35,45 @@ interface ReportsProps {
 const Reports: React.FC<ReportsProps> = ({ residences }) => {
     const [selectedResidenceId, setSelectedResidenceId] = useState(residences[0].id);
     const [dateRange, setDateRange] = useState('30');
+    const [isExporting, setIsExporting] = useState(false);
+    const reportRef = useRef<HTMLDivElement>(null);
 
     const reportData = useMemo(() => generateMockDailyData(Number(dateRange)), [dateRange]);
+
+    const handleExportPDF = async () => {
+        if (!reportRef.current) return;
+        setIsExporting(true);
+
+        try {
+            const element = reportRef.current;
+            // Use html2canvas to capture the element
+            // We set backgroundColor to ensure the dark theme is captured correctly if transparent
+            const canvas = await html2canvas(element, {
+                backgroundColor: '#111827', // Match bg-gray-900
+                scale: 2 // Higher scale for better resolution
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`relatorio-energia-${new Date().toISOString().split('T')[0]}.pdf`);
+
+        } catch (error) {
+            console.error("Erro ao gerar PDF:", error);
+            alert("Não foi possível gerar o PDF. Tente novamente.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     return (
         <div>
@@ -44,7 +83,13 @@ const Reports: React.FC<ReportsProps> = ({ residences }) => {
                     <p className="text-text-secondary mt-1">Gere e exporte seus relatórios de consumo de energia.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Exportar para PDF</button>
+                    <button 
+                        onClick={handleExportPDF}
+                        disabled={isExporting}
+                        className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 flex items-center"
+                    >
+                        {isExporting ? 'Gerando...' : 'Exportar para PDF'}
+                    </button>
                     <button className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Exportar para CSV</button>
                 </div>
             </div>
@@ -80,51 +125,59 @@ const Reports: React.FC<ReportsProps> = ({ residences }) => {
                 </div>
             </Card>
 
-            <Card className="mb-8">
-                 <h3 className="text-xl font-semibold mb-4 text-text-primary px-6 pt-4">Tendência de Consumo</h3>
-                <div className="h-96">
-                    <ResponsiveContainer width="100%" height="100%">
-                         <LineChart data={reportData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                            <XAxis dataKey="date" tickFormatter={(tick) => new Date(tick).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} tick={{ fill: '#a0aec0' }}/>
-                            <YAxis unit=" kWh" tick={{ fill: '#a0aec0' }} />
-                            <Tooltip 
-                                contentStyle={{ backgroundColor: '#1F2937', borderColor: '#4a5568', borderRadius: '0.5rem' }} 
-                                labelStyle={{ color: '#F9FAFB' }}
-                            />
-                            <Line type="monotone" dataKey="consumption" name="Consumo" stroke="#3B82F6" strokeWidth={2} dot={false} />
-                            <Line type="monotone" dataKey="generation" name="Geração" stroke="#10B981" strokeWidth={2} dot={false} />
-                        </LineChart>
-                    </ResponsiveContainer>
+            {/* Wrapper for PDF Capture */}
+            <div ref={reportRef} className="bg-background p-4 rounded-xl">
+                <div className="mb-4 text-center hidden" style={{ display: isExporting ? 'block' : 'none' }}>
+                     <h2 className="text-2xl font-bold text-text-primary">Relatório de Energia</h2>
+                     <p className="text-text-secondary">Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
-            </Card>
-            
-            <Card>
-                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-gray-700">
-                                <th className="p-4 text-sm font-semibold text-text-secondary">DATA</th>
-                                <th className="p-4 text-sm font-semibold text-text-secondary">CONSUMO (KWH)</th>
-                                <th className="p-4 text-sm font-semibold text-text-secondary">GERAÇÃO (KWH)</th>
-                                <th className="p-4 text-sm font-semibold text-text-secondary">SALDO (KWH)</th>
-                                <th className="p-4 text-sm font-semibold text-text-secondary">CUSTO ESTIMADO</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {reportData.map((d, i) => (
-                                <tr key={i} className="border-b border-gray-700 last:border-b-0">
-                                    <td className="p-4">{new Date(d.date).toLocaleDateString('pt-BR')}</td>
-                                    <td className="p-4">{d.consumption.toFixed(2)}</td>
-                                    <td className="p-4">{d.generation.toFixed(2)}</td>
-                                    <td className={`p-4 font-medium ${d.net >= 0 ? 'text-primary' : 'text-red-400'}`}>{d.net.toFixed(2)}</td>
-                                    <td className="p-4">${d.cost.toFixed(2)}</td>
+
+                <Card className="mb-8">
+                     <h3 className="text-xl font-semibold mb-4 text-text-primary px-6 pt-4">Tendência de Consumo</h3>
+                    <div className="h-96">
+                        <ResponsiveContainer width="100%" height="100%">
+                             <LineChart data={reportData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
+                                <XAxis dataKey="date" tickFormatter={(tick) => new Date(tick).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} tick={{ fill: '#a0aec0' }}/>
+                                <YAxis unit=" kWh" tick={{ fill: '#a0aec0' }} />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1F2937', borderColor: '#4a5568', borderRadius: '0.5rem' }} 
+                                    labelStyle={{ color: '#F9FAFB' }}
+                                />
+                                <Line type="monotone" dataKey="consumption" name="Consumo" stroke="#3B82F6" strokeWidth={2} dot={false} />
+                                <Line type="monotone" dataKey="generation" name="Geração" stroke="#10B981" strokeWidth={2} dot={false} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+                
+                <Card>
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-gray-700">
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">DATA</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">CONSUMO (KWH)</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">GERAÇÃO (KWH)</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">SALDO (KWH)</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">CUSTO ESTIMADO</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+                            </thead>
+                            <tbody>
+                                {reportData.map((d, i) => (
+                                    <tr key={i} className="border-b border-gray-700 last:border-b-0">
+                                        <td className="p-4">{new Date(d.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
+                                        <td className="p-4">{d.consumption.toFixed(2)}</td>
+                                        <td className="p-4">{d.generation.toFixed(2)}</td>
+                                        <td className={`p-4 font-medium ${d.net >= 0 ? 'text-primary' : 'text-red-400'}`}>{d.net.toFixed(2)}</td>
+                                        <td className="p-4">R$ {d.cost.toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            </div>
         </div>
     );
 };
