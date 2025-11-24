@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Card from '../components/Card';
 import { Reading, Residence } from '../types';
 
@@ -15,20 +15,10 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
     const [readings, setReadings] = useState<Reading[]>(selectedResidence.readings);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [meterReading, setMeterReading] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setReadings(selectedResidence.readings);
     }, [selectedResidence]);
-
-    const calculateUsage = (currentReading: number, currentReadingsList: Reading[]): number => {
-        // Find the most recent reading before the current date to calculate usage
-        // Note: This logic assumes simple sequential entry. For bulk import, we handle it inside handleFileUpload
-        if (currentReadingsList.length === 0) return 0;
-        const lastReading = currentReadingsList[0]; // Assuming list is sorted desc
-        const usage = currentReading - lastReading.reading;
-        return usage > 0 ? usage : 0;
-    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,8 +28,14 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
             return;
         }
 
-        const usage = calculateUsage(newReadingValue, readings);
+        const lastReading = readings[0];
+        const usage = lastReading ? newReadingValue - lastReading.reading : 0;
         
+        if (usage < 0) {
+            alert('A nova leitura deve ser maior que a anterior.');
+            return;
+        }
+
         const newReading: Reading = {
             date,
             reading: newReadingValue,
@@ -47,89 +43,15 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
             submittedBy: 'Manual',
         };
         
-        const updatedReadings = [newReading, ...readings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        updateGlobalReadings(updatedReadings);
-        setMeterReading('');
-    };
-
-    const updateGlobalReadings = (updatedReadings: Reading[]) => {
+        const updatedReadings = [newReading, ...readings];
         setReadings(updatedReadings);
+
+        // Update the global state
         setResidences(prevResidences => prevResidences.map(res => 
             res.id === selectedResidenceId ? { ...res, readings: updatedReadings } : res
         ));
-    };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            if (!text) return;
-
-            try {
-                // Split by newline, handling both \n and \r\n
-                const lines = text.split(/\r?\n/);
-                const newReadings: Reading[] = [];
-
-                // Skip header if exists (simple check if first char is number)
-                const startIndex = isNaN(Date.parse(lines[0].split(',')[0])) ? 1 : 0;
-
-                for (let i = startIndex; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-
-                    const parts = line.split(',');
-                    if (parts.length < 2) continue;
-
-                    const rDate = parts[0].trim();
-                    const rValue = parseFloat(parts[1].trim());
-
-                    if (rDate && !isNaN(rValue)) {
-                        newReadings.push({
-                            date: rDate,
-                            reading: rValue,
-                            usage: 0, // Will recalculate later
-                            submittedBy: 'Manual' // Imported as manual
-                        });
-                    }
-                }
-
-                if (newReadings.length === 0) {
-                    alert("Nenhuma leitura válida encontrada no arquivo.");
-                    return;
-                }
-
-                // Merge with existing, remove duplicates based on date
-                const combinedReadings = [...readings, ...newReadings];
-                const uniqueReadingsMap = new Map();
-                combinedReadings.forEach(r => uniqueReadingsMap.set(r.date, r));
-                
-                let sortedReadings = Array.from(uniqueReadingsMap.values())
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort Ascending first to calc usage
-
-                // Recalculate usage for everything
-                for (let i = 1; i < sortedReadings.length; i++) {
-                    const prev = sortedReadings[i-1];
-                    const curr = sortedReadings[i];
-                    curr.usage = Math.max(0, curr.reading - prev.reading);
-                }
-
-                // Reverse to Descending for display
-                sortedReadings = sortedReadings.reverse();
-
-                updateGlobalReadings(sortedReadings);
-                alert(`${newReadings.length} leituras importadas com sucesso!`);
-
-            } catch (error) {
-                console.error(error);
-                alert("Erro ao processar o arquivo. Certifique-se que é um CSV no formato: AAAA-MM-DD, Leitura");
-            }
-            // Reset input
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        };
-        reader.readAsText(file);
+        setMeterReading('');
     };
 
     return (
@@ -137,7 +59,7 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-text-primary">Leitura Manual do Medidor</h1>
-                    <p className="text-text-secondary mt-1">Envie uma nova leitura ou importe dados históricos.</p>
+                    <p className="text-text-secondary mt-1">Envie uma nova leitura para a residência selecionada.</p>
                 </div>
                  <div>
                     <label htmlFor="residence-select-readings" className="sr-only">Selecionar Residência</label>
@@ -156,25 +78,7 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
 
 
             <Card className="mb-8">
-                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Adicionar Leitura para: <strong className="text-primary">{selectedResidence.name}</strong></h3>
-                    <div>
-                         <input 
-                            type="file" 
-                            accept=".csv,.txt" 
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            className="hidden" 
-                        />
-                        <button 
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="text-sm text-primary-300 hover:text-primary-200 underline"
-                        >
-                            Importar CSV
-                        </button>
-                    </div>
-                 </div>
+                 <h3 className="text-lg font-semibold mb-4">Adicionar Leitura para: <strong className="text-primary">{selectedResidence.name}</strong></h3>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div>
                         <label htmlFor="date" className="block text-sm font-medium text-text-secondary mb-2">Data</label>
@@ -205,9 +109,6 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
                         Enviar Leitura
                     </button>
                 </form>
-                <p className="text-xs text-text-secondary mt-3">
-                    Para importação, use um arquivo CSV simples com o formato: <code>AAAA-MM-DD, Leitura</code> (ex: 2024-05-20, 12500.5)
-                </p>
             </Card>
 
             <h2 className="text-2xl font-bold text-text-primary mb-4">Histórico de Leituras: {selectedResidence.name}</h2>
@@ -225,7 +126,7 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
                         <tbody>
                             {readings.map((r, index) => (
                                 <tr key={index} className="border-b border-gray-700 last:border-b-0">
-                                    <td className="p-4">{new Date(r.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
+                                    <td className="p-4">{new Date(r.date).toLocaleDateString('pt-BR')}</td>
                                     <td className="p-4">{r.reading.toFixed(2)}</td>
                                     <td className="p-4">{r.usage.toFixed(2)}</td>
                                     <td className="p-4">
@@ -235,11 +136,6 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
                                     </td>
                                 </tr>
                             ))}
-                            {readings.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="p-4 text-center text-text-secondary">Nenhuma leitura registrada.</td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
                 </div>

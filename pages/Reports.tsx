@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import { DailyReportData, Residence } from '../types';
@@ -42,9 +41,10 @@ const Reports: React.FC<ReportsProps> = ({ residences }) => {
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-text-primary">Relatórios</h1>
-                    <p className="text-text-secondary mt-1">Gere e visualize seus relatórios de consumo de energia.</p>
+                    <p className="text-text-secondary mt-1">Gere e exporte seus relatórios de consumo de energia.</p>
                 </div>
                 <div className="flex items-center gap-4">
+                    <button className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Exportar para PDF</button>
                     <button className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Exportar para CSV</button>
                 </div>
             </div>
@@ -80,53 +80,51 @@ const Reports: React.FC<ReportsProps> = ({ residences }) => {
                 </div>
             </Card>
 
-            <div className="bg-background p-4 rounded-xl">
-                <Card className="mb-8">
-                     <h3 className="text-xl font-semibold mb-4 text-text-primary px-6 pt-4">Tendência de Consumo</h3>
-                    <div className="h-96 w-full min-w-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                             <LineChart data={reportData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                                <XAxis dataKey="date" tickFormatter={(tick) => new Date(tick).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} tick={{ fill: '#a0aec0' }}/>
-                                <YAxis unit=" kWh" tick={{ fill: '#a0aec0' }} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: '#1F2937', borderColor: '#4a5568', borderRadius: '0.5rem' }} 
-                                    labelStyle={{ color: '#F9FAFB' }}
-                                />
-                                <Line type="monotone" dataKey="consumption" name="Consumo" stroke="#3B82F6" strokeWidth={2} dot={false} />
-                                <Line type="monotone" dataKey="generation" name="Geração" stroke="#10B981" strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
-                
-                <Card>
-                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-gray-700">
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">DATA</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">CONSUMO (KWH)</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">GERAÇÃO (KWH)</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">SALDO (KWH)</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">CUSTO ESTIMADO</th>
+            <Card className="mb-8">
+                 <h3 className="text-xl font-semibold mb-4 text-text-primary px-6 pt-4">Tendência de Consumo</h3>
+                <div className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                         <LineChart data={reportData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
+                            <XAxis dataKey="date" tickFormatter={(tick) => new Date(tick).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} tick={{ fill: '#a0aec0' }}/>
+                            <YAxis unit=" kWh" tick={{ fill: '#a0aec0' }} />
+                            <Tooltip 
+                                contentStyle={{ backgroundColor: '#1F2937', borderColor: '#4a5568', borderRadius: '0.5rem' }} 
+                                labelStyle={{ color: '#F9FAFB' }}
+                            />
+                            <Line type="monotone" dataKey="consumption" name="Consumo" stroke="#3B82F6" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="generation" name="Geração" stroke="#10B981" strokeWidth={2} dot={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </Card>
+            
+            <Card>
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-gray-700">
+                                <th className="p-4 text-sm font-semibold text-text-secondary">DATA</th>
+                                <th className="p-4 text-sm font-semibold text-text-secondary">CONSUMO (KWH)</th>
+                                <th className="p-4 text-sm font-semibold text-text-secondary">GERAÇÃO (KWH)</th>
+                                <th className="p-4 text-sm font-semibold text-text-secondary">SALDO (KWH)</th>
+                                <th className="p-4 text-sm font-semibold text-text-secondary">CUSTO ESTIMADO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {reportData.map((d, i) => (
+                                <tr key={i} className="border-b border-gray-700 last:border-b-0">
+                                    <td className="p-4">{new Date(d.date).toLocaleDateString('pt-BR')}</td>
+                                    <td className="p-4">{d.consumption.toFixed(2)}</td>
+                                    <td className="p-4">{d.generation.toFixed(2)}</td>
+                                    <td className={`p-4 font-medium ${d.net >= 0 ? 'text-primary' : 'text-red-400'}`}>{d.net.toFixed(2)}</td>
+                                    <td className="p-4">${d.cost.toFixed(2)}</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {reportData.map((d, i) => (
-                                    <tr key={i} className="border-b border-gray-700 last:border-b-0">
-                                        <td className="p-4">{new Date(d.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
-                                        <td className="p-4">{d.consumption.toFixed(2)}</td>
-                                        <td className="p-4">{d.generation.toFixed(2)}</td>
-                                        <td className={`p-4 font-medium ${d.net >= 0 ? 'text-primary' : 'text-red-400'}`}>{d.net.toFixed(2)}</td>
-                                        <td className="p-4">R$ {d.cost.toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
-            </div>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
         </div>
     );
 };

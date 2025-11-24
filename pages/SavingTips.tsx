@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import { SavingTip, TipCategory, TipDifficulty } from '../types';
-import { LightBulbIcon, RefrigeratorIcon, TvIcon, ThermostatIcon, WaterDropIcon, WindIcon, Squares2X2Icon } from '../components/icons';
+import { LightBulbIcon, RefrigeratorIcon, TvIcon, ThermostatIcon, WaterDropIcon, WindIcon, Squares2X2Icon, WrenchScrewdriverIcon } from '../components/icons';
 
 const mockTips: SavingTip[] = [
     {
         id: 1,
-        title: 'Mude para Lâmpadas LED',
-        description: 'Troque lâmpadas incandescentes por LEDs. Elas usam até 75% menos energia e duram 25 vezes mais.',
+        title: 'Switch to LED Bulbs',
+        description: 'Replace incandescent bulbs with LEDs. They use up to 75% less energy and last 25 times longer.',
         category: 'Lighting',
         difficulty: 'Easy',
         savings: 15,
@@ -17,8 +17,8 @@ const mockTips: SavingTip[] = [
     },
     {
         id: 2,
-        title: 'Otimize o Uso da Geladeira',
-        description: 'Mantenha sua geladeira bem abastecida, mas não superlotada, para manter a temperatura de forma eficiente.',
+        title: 'Optimize Refrigerator Use',
+        description: 'Keep your fridge well-stocked but not overfilled to maintain its temperature efficiently.',
         category: 'Refrigeration',
         difficulty: 'Easy',
         savings: 10,
@@ -28,8 +28,8 @@ const mockTips: SavingTip[] = [
     },
     {
         id: 3,
-        title: 'Desconecte Eletrônicos',
-        description: 'O consumo fantasma de eletrônicos pode representar 5-10% da sua conta. Desconecte-os quando não estiverem em uso.',
+        title: 'Unplug Electronics',
+        description: 'Phantom load from electronics can account for 5-10% of your energy bill. Unplug them when not in use.',
         category: 'Electronics',
         difficulty: 'Medium',
         savings: 8,
@@ -39,8 +39,8 @@ const mockTips: SavingTip[] = [
     },
     {
         id: 4,
-        title: 'Instale um Termostato Inteligente',
-        description: 'Automatize seu aquecimento e resfriamento para reduzir o desperdício de energia quando você estiver fora ou dormindo.',
+        title: 'Install a Smart Thermostat',
+        description: 'Automate your heating and cooling schedule to reduce energy waste when you\'re away or asleep.',
         category: 'HVAC',
         difficulty: 'Hard',
         savings: 20,
@@ -50,8 +50,8 @@ const mockTips: SavingTip[] = [
     },
     {
         id: 5,
-        title: 'Lave Roupas com Água Fria',
-        description: 'Cerca de 90% da energia usada por uma máquina de lavar é para aquecer a água. Use água fria para economizar.',
+        title: 'Wash Clothes in Cold Water',
+        description: 'About 90% of the energy used by a washing machine is for heating water. Use cold water to save.',
         category: 'Appliances',
         difficulty: 'Easy',
         savings: 5,
@@ -61,8 +61,8 @@ const mockTips: SavingTip[] = [
     },
     {
         id: 6,
-        title: 'Vede Vazamentos de Ar',
-        description: 'Vede frestas em janelas e portas para evitar perda de climatização e manter a temperatura interna.',
+        title: 'Seal Air Leaks',
+        description: 'Use caulk or weatherstripping to seal leaks around windows and doors to prevent heat loss.',
         category: 'Home Improvement',
         difficulty: 'Medium',
         savings: 12,
@@ -72,35 +72,18 @@ const mockTips: SavingTip[] = [
     },
 ];
 
-const categoryTranslations: Record<string, string> = {
-    'Lighting': 'Iluminação',
-    'Refrigeration': 'Refrigeração',
-    'Electronics': 'Eletrônicos',
-    'HVAC': 'Climatização',
-    'Appliances': 'Eletrodomésticos',
-    'Home Improvement': 'Melhorias',
-    'All': 'Todas'
-};
-
-const difficultyTranslations: Record<string, string> = {
-    'Easy': 'Fácil',
-    'Medium': 'Médio',
-    'Hard': 'Difícil',
-    'All': 'Todos'
-};
-
 const categoryFilters: { label: string, category: TipCategory | 'All', icon: React.FC<{className?: string}> }[] = [
-    { label: 'Todas', category: 'All', icon: Squares2X2Icon },
-    { label: 'Iluminação', category: 'Lighting', icon: LightBulbIcon },
-    { label: 'Refrigeração', category: 'Refrigeration', icon: RefrigeratorIcon },
-    { label: 'Eletrônicos', category: 'Electronics', icon: TvIcon },
+    { label: 'All Categories', category: 'All', icon: Squares2X2Icon },
+    { label: 'Lighting', category: 'Lighting', icon: LightBulbIcon },
+    { label: 'Refrigeration', category: 'Refrigeration', icon: RefrigeratorIcon },
+    { label: 'Electronics', category: 'Electronics', icon: TvIcon },
 ];
 
 const difficultyFilters: { label: string, difficulty: TipDifficulty | 'All' }[] = [
-    { label: 'Todos', difficulty: 'All' },
-    { label: 'Fácil', difficulty: 'Easy' },
-    { label: 'Médio', difficulty: 'Medium' },
-    { label: 'Difícil', difficulty: 'Hard' },
+    { label: 'All Levels', difficulty: 'All' },
+    { label: 'Easy', difficulty: 'Easy' },
+    { label: 'Medium', difficulty: 'Medium' },
+    { label: 'Hard', difficulty: 'Hard' },
 ];
 
 const difficultyColors: Record<TipDifficulty, string> = {
@@ -110,8 +93,8 @@ const difficultyColors: Record<TipDifficulty, string> = {
 };
 
 const performanceColors = (perf: number) => {
-    if (perf > 5) return 'bg-red-500'; // Over typical (Assuming higher usage is bad)
-    if (perf < -5) return 'bg-green-500'; // Under typical (Assuming lower usage is good)
+    if (perf > 5) return 'bg-red-500'; // Over typical
+    if (perf < -5) return 'bg-green-500'; // Under typical
     return 'bg-yellow-500'; // Matches typical
 };
 
@@ -133,24 +116,23 @@ const FilterButton: React.FC<{
 );
 
 const TipCard: React.FC<{ tip: SavingTip }> = ({ tip }) => {
-    const Icon = tip.icon;
     const performanceText = 
-        tip.householdPerformance > 0 ? `${tip.householdPerformance}% acima da média` :
-        tip.householdPerformance < 0 ? `${Math.abs(tip.householdPerformance)}% abaixo da média` :
-        'Na média';
+        tip.householdPerformance > 0 ? `${tip.householdPerformance}% over typical` :
+        tip.householdPerformance < 0 ? `${Math.abs(tip.householdPerformance)}% under typical` :
+        'Matches typical';
 
     return (
         <Card className="flex flex-col">
             <div className="flex justify-between items-start">
                 <div className="p-3 rounded-full bg-primary-500/10">
-                    <Icon className="h-6 w-6 text-primary-300" />
+                    <tip.icon className="h-6 w-6 text-primary-300" />
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${difficultyColors[tip.difficulty] || 'bg-gray-500 text-gray-300'}`}>
-                        {difficultyTranslations[tip.difficulty] || tip.difficulty}
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${difficultyColors[tip.difficulty]}`}>
+                        {tip.difficulty}
                     </span>
                     <span className="px-3 py-1 text-xs font-semibold rounded-full bg-primary-500/20 text-primary-300">
-                        {tip.savings}% economia
+                        {tip.savings}% savings
                     </span>
                 </div>
             </div>
@@ -160,7 +142,7 @@ const TipCard: React.FC<{ tip: SavingTip }> = ({ tip }) => {
             </div>
             <div className="mt-6">
                 <div className="flex justify-between text-xs text-text-secondary mb-1">
-                    <span>Sua Residência</span>
+                    <span>Your Household</span>
                     <span>{performanceText}</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
@@ -169,9 +151,7 @@ const TipCard: React.FC<{ tip: SavingTip }> = ({ tip }) => {
                         style={{ width: `${Math.min(100, 50 + tip.householdPerformance * 2.5)}%` }}
                     />
                 </div>
-                <p className="text-right text-xs text-text-secondary mt-2">
-                    Categoria: {categoryTranslations[tip.category] || tip.category}
-                </p>
+                <p className="text-right text-xs text-text-secondary mt-2">Category: {tip.category}</p>
             </div>
         </Card>
     );
@@ -191,31 +171,28 @@ const SavingTips: React.FC = () => {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-text-primary">Dicas de Economia</h1>
-            <p className="text-text-secondary mt-1 mb-8">Descubra maneiras personalizadas de reduzir seu consumo e economizar dinheiro.</p>
+            <h1 className="text-3xl font-bold text-text-primary">Energy Saving Tips</h1>
+            <p className="text-text-secondary mt-1 mb-8">Discover personalized ways to reduce your consumption and save money.</p>
 
             <Card className="mb-8">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
                     <div>
-                        <h3 className="text-md font-semibold text-text-primary mb-2">Categoria</h3>
+                        <h3 className="text-md font-semibold text-text-primary mb-2">Category</h3>
                         <div className="flex flex-wrap gap-2">
-                            {categoryFilters.map(filter => {
-                                const FilterIcon = filter.icon;
-                                return (
-                                    <FilterButton
-                                        key={filter.category}
-                                        onClick={() => setActiveCategory(filter.category)}
-                                        isActive={activeCategory === filter.category}
-                                    >
-                                        <FilterIcon className="h-4 w-4" />
-                                        {filter.label}
-                                    </FilterButton>
-                                );
-                            })}
+                            {categoryFilters.map(filter => (
+                                <FilterButton
+                                    key={filter.category}
+                                    onClick={() => setActiveCategory(filter.category)}
+                                    isActive={activeCategory === filter.category}
+                                >
+                                    <filter.icon className="h-4 w-4" />
+                                    {filter.label}
+                                </FilterButton>
+                            ))}
                         </div>
                     </div>
                      <div>
-                        <h3 className="text-md font-semibold text-text-primary mb-2">Nível de Dificuldade</h3>
+                        <h3 className="text-md font-semibold text-text-primary mb-2">Difficulty Level</h3>
                         <div className="flex flex-wrap gap-2">
                              {difficultyFilters.map(filter => (
                                 <FilterButton
