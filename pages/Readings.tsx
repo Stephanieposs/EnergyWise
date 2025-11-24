@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Card from '../components/Card';
 import { Reading, Residence } from '../types';
 
@@ -16,9 +16,12 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
     const [readings, setReadings] = useState<Reading[]>(selectedResidence.readings);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [meterReading, setMeterReading] = useState('');
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [importError, setImportError] = useState<string | null>(null);
 
     useEffect(() => {
         setReadings(selectedResidence.readings);
+        setImportError(null);
     }, [selectedResidence]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -56,8 +59,61 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
     };
 
     const handleImportClick = () => {
-        // Placeholder for future file import logic
-        console.log("Botão de importar arquivo clicado");
+        fileInputRef.current?.click();
+    };
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImportError(null);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const text = reader.result as string;
+                const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+                if (!lines.length) throw new Error('Arquivo CSV vazio.');
+
+                const [first, ...rest] = lines;
+                const hasHeader = first.toLowerCase().includes('data') || first.toLowerCase().includes('date');
+                const dataLines = hasHeader ? rest : lines;
+                if (!dataLines.length) throw new Error('Nenhuma linha de dados encontrada.');
+
+                const parsed = dataLines.map((line) => {
+                    const [dateStr, readingStr, usageStr, submittedBy] = line.split(',');
+                    const readingNum = Number(readingStr);
+                    if (!dateStr || isNaN(readingNum)) throw new Error('Linha inválida: ' + line);
+                    const usageNum = usageStr && !isNaN(Number(usageStr)) ? Number(usageStr) : undefined;
+                    return {
+                        date: dateStr,
+                        reading: readingNum,
+                        usage: usageNum ?? 0,
+                        submittedBy: submittedBy?.trim() || 'Importado',
+                    } as Reading;
+                });
+
+                const sorted = [...parsed].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                const withUsage = sorted.map((item, idx) => {
+                    if (item.usage && !isNaN(item.usage)) return item;
+                    const next = sorted[idx + 1];
+                    const usage = next ? item.reading - next.reading : 0;
+                    return { ...item, usage };
+                });
+
+                setReadings(withUsage);
+                setResidences(prev => prev.map(res => res.id === selectedResidenceId ? { ...res, readings: withUsage } : res));
+            } catch (err: any) {
+                console.error(err);
+                setImportError(err.message || 'Erro ao processar arquivo.');
+            } finally {
+                e.target.value = '';
+            }
+        };
+        reader.onerror = () => {
+            setImportError('Não foi possível ler o arquivo.');
+            e.target.value = '';
+        };
+        reader.readAsText(file, 'utf-8');
     };
 
     return (
@@ -94,9 +150,17 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                         </svg>
-                        Importar Arquivo
+                        Importar CSV
                     </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv,text/csv"
+                        className="hidden"
+                        onChange={handleImport}
+                    />
                  </div>
+                {importError && <p className="text-sm text-red-400 mb-3">{importError}</p>}
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div>
                         <label htmlFor="date" className="block text-sm font-medium text-text-secondary mb-2">Data</label>

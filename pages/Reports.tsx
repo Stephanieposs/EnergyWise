@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import Card from '../components/Card';
 import { DailyReportData, Residence } from '../types';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -33,8 +33,72 @@ interface ReportsProps {
 const Reports: React.FC<ReportsProps> = ({ residences }) => {
     const [selectedResidenceId, setSelectedResidenceId] = useState(residences[0].id);
     const [dateRange, setDateRange] = useState('30');
+    const [reportData, setReportData] = useState<DailyReportData[]>(() => generateMockDailyData(Number(dateRange)));
+    const [isExportingPdf, setIsExportingPdf] = useState(false);
 
-    const reportData = useMemo(() => generateMockDailyData(Number(dateRange)), [dateRange]);
+    useEffect(() => {
+        setReportData(generateMockDailyData(Number(dateRange)));
+    }, [dateRange]);
+
+    const handleExportCSV = () => {
+        const header = ['date', 'consumption_kwh', 'generation_kwh', 'net_kwh', 'estimated_cost'];
+        const rows = reportData.map((row) => [
+            row.date,
+            row.consumption.toFixed(2),
+            row.generation.toFixed(2),
+            row.net.toFixed(2),
+            row.cost.toFixed(2),
+        ]);
+        const csvContent = [header, ...rows].map((r) => r.join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `relatorio_${selectedResidenceId}_${dateRange}d.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleExportPDF = async () => {
+        try {
+            setIsExportingPdf(true);
+            // Importa on-demand via CDN para evitar problemas de resolução local
+            const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js');
+            const doc = new jsPDF();
+            doc.setFontSize(14);
+            doc.text('Relatório de Consumo', 14, 16);
+            doc.setFontSize(10);
+            doc.text(`Residência ID: ${selectedResidenceId} | Período: últimos ${dateRange} dias`, 14, 24);
+            const startY = 32;
+            const colX = [14, 50, 86, 122, 158];
+            const headers = ['Data', 'Consumo', 'Geração', 'Saldo', 'Custo'];
+            doc.setFont(undefined, 'bold');
+            headers.forEach((h, i) => doc.text(h, colX[i], startY));
+            doc.setFont(undefined, 'normal');
+            let y = startY + 6;
+            reportData.forEach((row) => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 16;
+                }
+                const cells = [
+                    new Date(row.date).toLocaleDateString('pt-BR'),
+                    `${row.consumption.toFixed(2)} kWh`,
+                    `${row.generation.toFixed(2)} kWh`,
+                    `${row.net.toFixed(2)} kWh`,
+                    `R$ ${row.cost.toFixed(2)}`,
+                ];
+                cells.forEach((cell, i) => doc.text(cell, colX[i], y));
+                y += 6;
+            });
+            doc.save(`relatorio_${selectedResidenceId}_${dateRange}d.pdf`);
+        } catch (err) {
+            console.error('Erro ao exportar PDF', err);
+            alert('Não foi possível gerar o PDF. Tente novamente.');
+        } finally {
+            setIsExportingPdf(false);
+        }
+    };
 
     return (
         <div>
@@ -43,9 +107,20 @@ const Reports: React.FC<ReportsProps> = ({ residences }) => {
                     <h1 className="text-3xl font-bold text-text-primary">Relatórios</h1>
                     <p className="text-text-secondary mt-1">Gere e exporte seus relatórios de consumo de energia.</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <button className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Exportar para PDF</button>
-                    <button className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Exportar para CSV</button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportPDF}
+                        className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-60"
+                        disabled={isExportingPdf}
+                    >
+                        {isExportingPdf ? 'Gerando PDF...' : 'Exportar para PDF'}
+                    </button>
+                    <button
+                        onClick={handleExportCSV}
+                        className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700"
+                    >
+                        Exportar para CSV
+                    </button>
                 </div>
             </div>
 
@@ -118,7 +193,7 @@ const Reports: React.FC<ReportsProps> = ({ residences }) => {
                                     <td className="p-4">{d.consumption.toFixed(2)}</td>
                                     <td className="p-4">{d.generation.toFixed(2)}</td>
                                     <td className={`p-4 font-medium ${d.net >= 0 ? 'text-primary' : 'text-red-400'}`}>{d.net.toFixed(2)}</td>
-                                    <td className="p-4">${d.cost.toFixed(2)}</td>
+                                    <td className="p-4">R$ {d.cost.toFixed(2)}</td>
                                 </tr>
                             ))}
                         </tbody>
