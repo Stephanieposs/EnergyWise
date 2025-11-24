@@ -19,16 +19,16 @@ const generateMockTips = async (): Promise<string> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     return JSON.stringify([
         {
-            title: "Reduce Phantom Load",
-            description: "Unplug electronics when not in use. Devices in standby mode can still draw a significant amount of power over time."
+            title: "Reduza o Consumo Fantasma",
+            description: "Desconecte eletrônicos quando não estiverem em uso. Dispositivos em modo standby podem consumir uma quantidade significativa de energia ao longo do tempo."
         },
         {
-            title: "Optimize Your Thermostat",
-            description: "Set your thermostat a few degrees lower in the winter and higher in the summer. A smart thermostat can automate this for you."
+            title: "Otimize seu Ar-Condicionado",
+            description: "Ajuste o termostato para 23°C ou 24°C. Cada grau a menos aumenta consideravelmente o consumo de energia."
         },
         {
-            title: "Switch to LED Lighting",
-            description: "LED bulbs use up to 80% less energy and last much longer than traditional incandescent bulbs. It's a small change with a big impact."
+            title: "Mude para Iluminação LED",
+            description: "Lâmpadas LED usam até 80% menos energia e duram muito mais que as incandescentes tradicionais. É uma pequena mudança com grande impacto."
         }
     ]);
 };
@@ -50,7 +50,11 @@ export const fetchPersonalizedTips = async (consumptionData: MonthlyData[]): Pro
 
     const prompt = `
       You are an energy efficiency expert named 'Energy Wise'. Based on the following user energy data summary, provide 3 actionable and personalized energy-saving tips.
-      The user is looking for practical advice to reduce their electricity bill. Format the output as a valid JSON array of objects, where each object has a "title" and a "description". Do not include any other text or markdown formatting.
+      The user is looking for practical advice to reduce their electricity bill. 
+      
+      IMPORTANT: Respond ONLY in Portuguese (PT-BR).
+      
+      Format the output as a valid JSON array of objects, where each object has a "title" and a "description". Do not include any other text or markdown formatting.
 
       User Data Summary:
       ${consumptionSummary}

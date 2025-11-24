@@ -1,4 +1,4 @@
-// Fix: Import FC type from React to resolve reference error.
+
 import type { FC } from 'react';
 
 export interface MonthlyData {
@@ -31,7 +31,7 @@ export interface Residence {
 }
 
 export interface User {
-  name:string;
+  name: string;
   email: string;
 }
 
@@ -95,7 +95,6 @@ export interface SavingTip {
   category: TipCategory;
   difficulty: TipDifficulty;
   savings: number; // Percentage
-  // Fix: Use the imported FC type.
   icon: FC<{ className?: string }>;
   householdPerformance: number; // Percentage
   typicalPerformance: number; // Percentage

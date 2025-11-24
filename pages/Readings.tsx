@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Card from '../components/Card';
 import { Reading, Residence } from '../types';
@@ -54,6 +55,11 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
         setMeterReading('');
     };
 
+    const handleImportClick = () => {
+        // Placeholder for future file import logic
+        console.log("Botão de importar arquivo clicado");
+    };
+
     return (
         <div>
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
@@ -78,7 +84,19 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
 
 
             <Card className="mb-8">
-                 <h3 className="text-lg font-semibold mb-4">Adicionar Leitura para: <strong className="text-primary">{selectedResidence.name}</strong></h3>
+                 <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Adicionar Leitura para: <strong className="text-primary">{selectedResidence.name}</strong></h3>
+                    <button
+                        type="button"
+                        onClick={handleImportClick}
+                        className="text-sm bg-surface border border-gray-600 hover:bg-gray-700 text-text-primary py-1.5 px-3 rounded-md transition-colors flex items-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        Importar Arquivo
+                    </button>
+                 </div>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div>
                         <label htmlFor="date" className="block text-sm font-medium text-text-secondary mb-2">Data</label>
@@ -131,7 +149,7 @@ const Readings: React.FC<ReadingsProps> = ({ residences, selectedResidenceId, se
                                     <td className="p-4">{r.usage.toFixed(2)}</td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 text-xs rounded-full ${r.submittedBy === 'Manual' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'}`}>
-                                            {r.submittedBy}
+                                            {r.submittedBy === 'Manual' ? 'Manual' : 'Automático'}
                                         </span>
                                     </td>
                                 </tr>

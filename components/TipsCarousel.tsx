@@ -21,7 +21,10 @@ const TipsCarousel: React.FC<TipsCarouselProps> = ({ consumptionData }) => {
         setError(null);
         try {
             const tipsJsonString = await fetchPersonalizedTips(consumptionData);
-            const parsedTips = JSON.parse(tipsJsonString);
+            // Sanitize string to remove markdown code blocks if present
+            const cleanJson = tipsJsonString.replace(/```json\n?|\n?```/g, '').trim();
+            const parsedTips = JSON.parse(cleanJson);
+            
             if (Array.isArray(parsedTips)) {
                 setTips(parsedTips);
             } else {
@@ -29,7 +32,7 @@ const TipsCarousel: React.FC<TipsCarouselProps> = ({ consumptionData }) => {
             }
         } catch (e) {
             console.error("Failed to parse tips:", e);
-            setError("Could not load personalized tips.");
+            setError("Não foi possível carregar as dicas personalizadas.");
             setTips([]);
         } finally {
             setLoading(false);
@@ -54,7 +57,7 @@ const TipsCarousel: React.FC<TipsCarouselProps> = ({ consumptionData }) => {
             return (
                 <div className="flex items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
-                    <p className="ml-3 text-text-secondary">Generating personalized tips...</p>
+                    <p className="ml-3 text-text-secondary">Gerando dicas personalizadas...</p>
                 </div>
             );
         }
@@ -64,7 +67,7 @@ const TipsCarousel: React.FC<TipsCarouselProps> = ({ consumptionData }) => {
         }
         
         if (tips.length === 0) {
-            return <p className="text-text-secondary">No tips available at the moment.</p>;
+            return <p className="text-text-secondary">Nenhuma dica disponível no momento.</p>;
         }
 
         const currentTip = tips[currentIndex];
@@ -96,7 +99,7 @@ const TipsCarousel: React.FC<TipsCarouselProps> = ({ consumptionData }) => {
         <Card className="flex flex-col h-full">
             <div className="flex items-center mb-4">
                 <LightBulbIcon className="h-6 w-6 text-accent mr-3" />
-                <h3 className="text-xl font-semibold text-text-primary">Personalized Tips</h3>
+                <h3 className="text-xl font-semibold text-text-primary">Dicas Personalizadas</h3>
             </div>
             <div className="flex-grow min-h-[100px]">
                 {renderContent()}
