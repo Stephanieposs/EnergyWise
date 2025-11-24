@@ -31,6 +31,7 @@ const DetailItem: React.FC<{ label: string; value: React.ReactNode }> = ({ label
 const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) => {
     const [view, setView] = useState<'list' | 'details' | 'form'>('list');
     const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
     
     const initialFormState = {
         name: '',
@@ -46,6 +47,11 @@ const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) =>
         installationDate: new Date().toISOString().split('T')[0],
     };
     const [formState, setFormState] = useState(initialFormState);
+
+    const resetForm = () => {
+        setIsEditing(false);
+        setFormState(initialFormState);
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -67,15 +73,15 @@ const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) =>
         }));
     };
 
-    const handleAddResidence = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const newRes: Residence = {
-            id: Math.max(...residences.map(r => r.id), 0) + 1,
+        const payload: Residence = {
+            id: isEditing && selectedResidence ? selectedResidence.id : Math.max(...residences.map(r => r.id), 0) + 1,
             name: formState.name,
             address: formState.address,
             hasSolar: formState.hasSolar,
-            data: [],
-            readings: [],
+            data: isEditing && selectedResidence ? selectedResidence.data : [],
+            readings: isEditing && selectedResidence ? selectedResidence.readings : [],
             tariff: {
                 group: formState.group,
                 subgroup: formState.subgroup,
@@ -89,15 +95,52 @@ const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) =>
                 installationDate: formState.installationDate
             } : undefined
         };
-        setResidences([...residences, newRes]);
-        setView('list');
-        setFormState(initialFormState);
+
+        if (isEditing && selectedResidence) {
+            setResidences(residences.map(r => r.id === selectedResidence.id ? payload : r));
+            setSelectedResidence(payload);
+            setView('details');
+            setIsEditing(false);
+        } else {
+            setResidences([...residences, payload]);
+            setView('list');
+        }
+        resetForm();
     };
     
     const handleViewDetails = (residence: Residence) => {
         setSelectedResidence(residence);
+        setIsEditing(false);
         setView('details');
     }
+
+    const handleEditResidence = (residence: Residence) => {
+        setSelectedResidence(residence);
+        setFormState({
+            name: residence.name,
+            address: residence.address,
+            hasSolar: residence.hasSolar,
+            group: residence.tariff.group,
+            subgroup: residence.tariff.subgroup,
+            modality: residence.tariff.modality,
+            costKwh: residence.tariff.costKwh.toString(),
+            power: residence.solarSystem?.power?.toString() ?? '0',
+            panelType: residence.solarSystem?.panelType ?? 'Monocristalino',
+            inverterType: residence.solarSystem?.inverterType ?? '',
+            installationDate: residence.solarSystem?.installationDate ?? new Date().toISOString().split('T')[0],
+        });
+        setIsEditing(true);
+        setView('form');
+    };
+
+    const handleCancel = () => {
+        if (isEditing) {
+            setView('details');
+        } else {
+            setView('list');
+        }
+        resetForm();
+    };
 
     const renderListView = () => (
         <>
@@ -107,7 +150,7 @@ const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) =>
                     <p className="text-text-secondary mt-1">Adicione e visualize suas unidades consumidoras.</p>
                 </div>
                  <button
-                    onClick={() => { setFormState(initialFormState); setView('form'); }}
+                    onClick={() => { setIsEditing(false); setFormState(initialFormState); setView('form'); }}
                     className="bg-primary hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-md transition-colors"
                 >
                     Adicionar Residência
@@ -144,7 +187,7 @@ const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) =>
                     <p className="text-text-secondary mt-1">{selectedResidence?.address}</p>
                 </div>
                  <div className="flex gap-2">
-                    <button className="p-2 bg-surface hover:bg-gray-700 rounded-md"><PencilIcon className="h-5 w-5 text-text-secondary" /></button>
+                    <button onClick={() => selectedResidence && handleEditResidence(selectedResidence)} className="p-2 bg-surface hover:bg-gray-700 rounded-md"><PencilIcon className="h-5 w-5 text-text-secondary" /></button>
                     <button className="p-2 bg-surface hover:bg-gray-700 rounded-md"><TrashIcon className="h-5 w-5 text-red-500" /></button>
                 </div>
             </div>
@@ -173,8 +216,8 @@ const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) =>
     
     const renderFormView = () => (
         <Card>
-            <h2 className="text-2xl font-bold text-text-primary mb-6 border-b border-gray-700 pb-4">Cadastrar Nova Residência</h2>
-            <form onSubmit={handleAddResidence} className="space-y-6">
+            <h2 className="text-2xl font-bold text-text-primary mb-6 border-b border-gray-700 pb-4">{isEditing ? 'Editar Residência' : 'Cadastrar Nova Residência'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
                 
                 <h3 className="text-lg font-semibold text-primary">Informações Gerais</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -247,8 +290,8 @@ const Residences: React.FC<ResidencesProps> = ({ residences, setResidences }) =>
                 )}
                 
                 <div className="mt-6 flex justify-end gap-4 pt-6 border-t border-gray-700">
-                     <button type="button" onClick={() => setView('list')} className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Cancelar</button>
-                     <button type="submit" className="bg-primary hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-md transition-colors">Salvar Residência</button>
+                     <button type="button" onClick={handleCancel} className="px-4 py-2 text-sm font-medium bg-surface border border-gray-600 rounded-md hover:bg-gray-700">Cancelar</button>
+                     <button type="submit" className="bg-primary hover:bg-primary-600 text-white font-bold py-2 px-4 rounded-md transition-colors">{isEditing ? 'Salvar alterações' : 'Salvar Residência'}</button>
                 </div>
             </form>
         </Card>
